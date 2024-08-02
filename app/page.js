@@ -455,7 +455,7 @@ export default function Home() {
         />
 
       
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' , marginTop: 4}}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' , marginTop: 4, gap:"50px"}}>
           <SearchBar
             inventory={inventory}
             setFilteredInventory={setFilteredInventory}
