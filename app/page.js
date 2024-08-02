@@ -564,7 +564,7 @@ export default function Home() {
               <TextField
                 label="Unit Price"
                 type="number"
-                value={parseFloat(unitPrice).toFixed(2)}
+                value={parseFloat(unitPrice)}
                 onChange={(e) => setUnitPrice(e.target.value)}
                 inputProps={{ min: 0, step: 'any' }}
               />
