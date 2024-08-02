@@ -557,7 +557,7 @@ export default function Home() {
               <TextField
                 label="Quantity"
                 type="number"
-                value={parseFloat(qty).toFixed(2)}
+                value={parseFloat(qty)}
                 onChange={(e) => setQty(e.target.value)}
                 inputProps={{ min: 0, step: 'any' }}
               />
