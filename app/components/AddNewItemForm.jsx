@@ -21,11 +21,17 @@ const AddNewItemForm = ({
   handleClose
 }) => {
   return (
-    <Box sx={{ padding: 2 }}>
+    <Box >
       <Collapse in={openForm}>
-        <Box sx={{ marginTop: 1 }}>
-          <Typography variant="h6">Add New Item</Typography>
-          <Grid container spacing={2} alignItems="center">
+        <Box sx={{
+          marginTop: 5,
+          border: '1px solid grey',
+          borderRadius: '15px', 
+          backgroundColor: "white",
+          padding: '30px'
+          }}>
+          <Typography sx = {{marginBottom:2, fontWeight:"bold", fontFamily: '"Montserrat", sans-serif',}}>ADD NEW ITEM</Typography>
+          <Grid container spacing={3} alignItems="center">
             <Grid item xs={12} sm={2.5}>
               <TextField
                 label="Item Name"
@@ -110,9 +116,22 @@ const AddNewItemForm = ({
 
             <Grid item xs={12} sm={1.5}>
               <Button
-                variant="contained"
                 onClick={handleClose}
                 fullWidth
+                sx={{
+                  height:"30px",
+                  border: "1px solid black",
+                  backgroundColor: 'white',
+                  borderRadius: '20px',
+                  padding: '10px 20px',
+                  fontFamily: "'Montserrat', sans-serif",
+                  fontSize: "10px",
+                  textTransform: 'uppercase',
+                  color: "black",
+                  '&:hover': {
+                    backgroundColor: '#ebebeb', 
+                  }
+                }}
               >
                 Remove All
               </Button>
@@ -120,9 +139,21 @@ const AddNewItemForm = ({
 
             <Grid item xs={12} sm={1.5}>
               <Button
-                variant="contained"
                 onClick={addItem}
                 fullWidth
+                sx={{
+                  height:"30px",
+                  backgroundColor: 'black',
+                  borderRadius: '20px',
+                  padding: '10px 20px',
+                  fontFamily: "'Montserrat', sans-serif",
+                  fontSize: "10px",
+                  textTransform: 'uppercase',
+                  color: "white",
+                  '&:hover': {
+                    backgroundColor: '#212121', 
+                  }
+                }}
               >
                 Add Item
               </Button>

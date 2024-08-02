@@ -19,9 +19,30 @@ const FilterPopup = ({ CATEGORIES, applyFilters, clearFilters, filters, handleFi
   const id = open ? 'filter-popover' : undefined;
 
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-      <IconButton onClick={handleClick}>
-        <TuneIcon  />
+    <Box
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        border: '1px solid #cfcfcf',
+        borderRadius: '8px', 
+        padding: '2px',
+        height: '40px',
+        backgroundColor: 'white'
+      }}
+    >
+      <IconButton
+        onClick={handleClick}
+        sx={{
+          '& .MuiSvgIcon-root': {
+            fontSize: 20,
+            marginRight: '6px', 
+          },
+          display: 'flex',
+          alignItems: 'center',
+        }}
+      >
+        <TuneIcon />
+        <Typography variant="body2">Filter</Typography>
       </IconButton>
       <Popover
         id={id}
@@ -37,8 +58,8 @@ const FilterPopup = ({ CATEGORIES, applyFilters, clearFilters, filters, handleFi
           horizontal: 'center',
         }}
       >
-        <Box sx={{ padding: 2, width: 300 }}>
-          <Typography variant="h6">Filters</Typography>
+        <Box sx={{ padding: 3, width: 300, border: '1px solid #cfcfcf', boxShadow:"none" }}>
+          <Typography sx = {{marginBottom:"15px", fontWeight:"bold", fontFamily: '"Montserrat", sans-serif',}}>FILTERS</Typography>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, marginBottom: 2 }}>
             <TextField
               label="Category"
@@ -46,7 +67,7 @@ const FilterPopup = ({ CATEGORIES, applyFilters, clearFilters, filters, handleFi
               select
               value={filters.category}
               onChange={handleFilterChange}
-              fullWidth
+              fullWidth 
             >
               {CATEGORIES.map((category) => (
                 <MenuItem key={category} value={category}>
@@ -94,10 +115,41 @@ const FilterPopup = ({ CATEGORIES, applyFilters, clearFilters, filters, handleFi
               />
             </Box>
 
-            <Button variant="contained" onClick={applyFilters}>Apply Filters</Button>
-            <Button variant="outlined" onClick={clearFilters} sx={{ marginLeft: 1 }}>
-              Clear Filters
-            </Button>
+            <Box sx={{ marginTop: 2, display: 'flex', gap: 4, justifyContent: "space-around"}}>
+              <Button onClick={applyFilters} sx={{
+                  width: "100px",
+                  height:"35px",
+                  backgroundColor: 'black',
+                  borderRadius: '5px',
+                  padding: '10px 20px',
+                  fontFamily: "'Montserrat', sans-serif",
+                  fontSize: "10px",
+                  textTransform: 'uppercase',
+                  color: "white",
+                  '&:hover': {
+                    backgroundColor: '#212121', 
+                  }
+                }}>
+                Apply
+              </Button>
+              <Button onClick={clearFilters} sx={{
+                  width: "100px",
+                  height:"35px",
+                  border: "1px solid black",
+                  backgroundColor: 'white',
+                  borderRadius: '5px',
+                  padding: '10px 20px',
+                  fontFamily: "'Montserrat', sans-serif",
+                  fontSize: "10px",
+                  textTransform: 'uppercase',
+                  color: "black",
+                  '&:hover': {
+                    backgroundColor: '#ebebeb', 
+                  }
+                }}>
+                Clear
+              </Button>
+            </Box>
           </Box>
         </Box>
       </Popover>

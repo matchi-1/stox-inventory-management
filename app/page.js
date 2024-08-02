@@ -19,6 +19,7 @@ import {
   IconButton,
   Menu,
   MenuItem,
+  TablePagination,
   Grid,
   Collapse,
   FormControl,
@@ -41,6 +42,9 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import AccountCircle from '@mui/icons-material/AccountCircle';
 import FilterPopup from './components/FilterPopup.jsx';
 import AddNewItemForm from './components/AddNewItemForm.jsx';
+import SearchBar from './components/SearchBar';
+import SortingPopup from './components/SortingPopup';
+import { Height } from "@mui/icons-material";
 
 export default function Home() {
   const [openForm, setOpenForm] = useState(false);
@@ -58,8 +62,24 @@ export default function Home() {
   const [anchorEl, setAnchorEl] = useState(null);
   const openMenu = Boolean(anchorEl);
 
+  const cellStyles = {
+    fontFamily: 'Roboto, sans-serif',
+    fontSize: '12px',
+    padding: '10px',
+    textAlign: 'left',
+  };
+  
+  const headCellStyles = {
+    ...cellStyles,
+    fontFamily: 'Montserrat, sans-serif',
+    fontSize: '10px',
+    fontWeight: 'bold',
+    textTransform: 'uppercase'
+  };
+
   const [inventory, setInventory] = useState([]);
   const [filteredInventory, setFilteredInventory] = useState(inventory);
+  const [sort, setSort] = useState('item_name');
   const [filters, setFilters] = useState({
     category: "",
     supplier: "",
@@ -78,6 +98,24 @@ export default function Home() {
     'Kitchen',
     'Miscellaneous'
   ];
+
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
+
+  // Handle page change
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  // Handle rows per page change
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
+
+  // Slice the data for the current page
+  const displayedRows = filteredInventory.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+
   
   useEffect(() => {
     const fetchAndInitialize = async () => {
@@ -86,7 +124,50 @@ export default function Home() {
 
     fetchAndInitialize();
   }, []); // Run once on mount
+
   
+  // Fetch inventory data
+  const updateInventory = async () => {
+    const snapshot = collection(firestore, 'inventory');
+    const docs = await getDocs(snapshot);
+    const inventoryList = docs.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+    setInventory(inventoryList);
+    setFilteredInventory(inventoryList); // Initialize filteredInventory with full inventory
+  };
+  
+  // Function to sort table
+  const sortInventory = (items) => {
+    let sortedInventory = [...items];
+    switch (sort) {
+      case 'item_name':
+        sortedInventory.sort((a, b) => a.item_name.localeCompare(b.item_name));
+        break;
+      case 'purchase_date':
+        sortedInventory.sort((a, b) => new Date(a.purchase_date) - new Date(b.purchase_date));
+        break;
+      case 'total_value':
+        sortedInventory.sort((a, b) => a.total_value - b.total_value);
+        break;
+      case 'item_id':
+        sortedInventory.sort((a, b) => a.item_id.localeCompare(b.item_id));
+        break;
+      default:
+        break;
+    }
+    return sortedInventory;
+  };
+
+  useEffect(() => {
+    if (inventory.length > 0) {
+      const sorted = sortInventory(inventory);
+      setFilteredInventory(sorted);
+    }
+  }, [inventory, sort]); // Depend on both inventory and sort
+
+
   // Function to handle filter changes
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
@@ -125,22 +206,10 @@ export default function Home() {
     // Reset filtered inventory to original inventory
     setFilteredInventory(inventory);
   };
-  
-  // Fetch inventory data
-  const updateInventory = async () => {
-    const snapshot = collection(firestore, 'inventory');
-    const docs = await getDocs(snapshot);
-    const inventoryList = docs.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
-    setInventory(inventoryList);
-    setFilteredInventory(inventoryList); // Initialize filteredInventory with full inventory
-  };
 
-  
+  // Toggle add item form visibility
   const handleToggleForm = () => {
-    setOpenForm(!openForm); // Toggle add item form visibility
+    setOpenForm(!openForm);
   };
 
 
@@ -177,28 +246,55 @@ export default function Home() {
   };
 
 
-  //function to add item
+  // Function to add an item
   const addItem = async () => {
+    // Validation checks
+    if (!itemName || !category || !qty || !unitPrice || !supplier || !purchaseDate) {
+      // You can use an alert or show an error message to the user
+      alert("Please fill out all fields.");
+      return;
+    }
+    
+    // Ensure qty and unitPrice are valid numbers
+    const quantity = parseInt(qty);
+    const price = parseFloat(unitPrice);
+    if (isNaN(quantity) || isNaN(price)) {
+      alert("Quantity and Unit Price must be valid numbers.");
+      return;
+    }
+    
     // Generate a unique item ID
     const uniqueID = await generateUniqueID();
-    
-    const totalValue = parseFloat(unitPrice) * parseInt(qty);
-  
+
+    // Calculate total value
+    const totalValue = price * quantity;
+
+    // Create new item object
     const newItem = {
       item_id: uniqueID,
       item_name: itemName,
       category,
-      qty: parseInt(qty),
-      unit_price: parseFloat(unitPrice),
-      total_value: parseFloat(totalValue),
+      qty: quantity,
+      unit_price: price,
+      total_value: totalValue,
       supplier,
       purchase_date: purchaseDate,
     };
-  
-    await setDoc(doc(firestore, "inventory", uniqueID), newItem);
-    await updateInventory();
-    handleClose();
+
+    try {
+      // Add new item to the Firestore
+      await setDoc(doc(firestore, "inventory", uniqueID), newItem);
+      // Update inventory list
+      await updateInventory();
+      // Close the form or modal
+      handleClose();
+    } catch (error) {
+      // Handle any errors that occur during the process
+      console.error("Error adding item: ", error);
+      alert("An error occurred while adding the item. Please try again.");
+    }
   };
+
   
   
   // function to edit an item
@@ -261,20 +357,24 @@ export default function Home() {
   const handleMenuClose = () => setAnchorEl(null);
 
   return (
-    <Box>
-      <AppBar position="static">
+    <Box >
+      <AppBar position="static"
+              sx={{ backgroundColor: "black",
+                    boxShadow: 'none'
+              }}>
         <Toolbar>
-          <Typography variant="h6" sx={{ flexGrow: 1 }}>
+          <Typography 
+              variant="h6" 
+              sx={{ 
+                flexGrow: 1, 
+                fontFamily: '"Montserrat", sans-serif',
+                letterSpacing: "2px"
+              }}
+            >
             STOX
           </Typography>
-          <Box sx={{ display: 'flex', gap: 2 }}>
-            <Link href="/dashboard" color="inherit" underline="none">
-              Dashboard
-            </Link>
-            <Link href="/inventory" color="inherit" underline="none">
-              Inventory
-            </Link>
-          </Box>
+
+          
           <IconButton
             size="large"
             edge="end"
@@ -306,14 +406,33 @@ export default function Home() {
         </Toolbar>
       </AppBar>
 
-      <Box sx={{ padding: 5 }}>
+      <Box sx={{ padding: 5, backgroundColor: "#f7f7f7"}}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 1 }}>
-          <Typography variant="h4">
-            Your Inventory
+          <Typography variant="h4" sx={{ 
+                flexGrow: 1, 
+                fontFamily: '"Montserrat", sans-serif',
+                textTransform: "uppercase"
+                }}>
+            Inventory
           </Typography>
-          <Button variant="contained" onClick={handleToggleForm}>
+          <Button
+            onClick={handleToggleForm}
+            sx={{
+              backgroundColor: 'black',
+              borderRadius: '0px',
+              padding: '10px 20px',
+              fontFamily: "'Montserrat', sans-serif",
+              textTransform: 'uppercase',
+              fontSize: "12px",
+              color: "white",
+              '&:hover': {
+                backgroundColor: '#212121', 
+              }
+            }}
+          >
             {openForm ? 'Hide Form' : 'Add New Item'}
           </Button>
+
         </Box>
 
         <AddNewItemForm
@@ -335,53 +454,73 @@ export default function Home() {
           handleClose={handleClose}
         />
 
-        <FilterPopup
-          CATEGORIES={CATEGORIES}
-          filters={filters}
-          handleFilterChange={handleFilterChange}
-          applyFilters={applyFilters}
-          clearFilters={clearFilters}
-        />
+      
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' , marginTop: 4}}>
+          <SearchBar
+            inventory={inventory}
+            setFilteredInventory={setFilteredInventory}
+          />
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <SortingPopup currentSort={sort} setSort={setSort} />
+            <FilterPopup
+              CATEGORIES={CATEGORIES}
+              filters={filters}
+              handleFilterChange={handleFilterChange}
+              applyFilters={applyFilters}
+              clearFilters={clearFilters}
+            />
+          </Box>
+        </Box>
 
-
-        <TableContainer component={Paper} sx={{ marginTop: 3 }}>
+        
+        
+        <TableContainer component={Paper} sx={{ marginTop: 3, padding: "8px 20px", border: "2px solid white" }}>
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>Item ID</TableCell>
-                <TableCell>Item Name</TableCell>
-                <TableCell>Category</TableCell>
-                <TableCell>Quantity</TableCell>
-                <TableCell>Unit Price</TableCell>
-                <TableCell>Total Value</TableCell>
-                <TableCell>Supplier</TableCell>
-                <TableCell>Purchase Date</TableCell>
-                <TableCell>Actions</TableCell>
+                <TableCell sx={headCellStyles}>Item ID</TableCell>
+                <TableCell sx={headCellStyles}>Item Name</TableCell>
+                <TableCell sx={headCellStyles}>Category</TableCell>
+                <TableCell sx={headCellStyles}>Quantity</TableCell>
+                <TableCell sx={headCellStyles}>Unit Price</TableCell>
+                <TableCell sx={headCellStyles}>Total Value</TableCell>
+                <TableCell sx={headCellStyles}>Supplier</TableCell>
+                <TableCell sx={headCellStyles}>Purchase Date</TableCell>
+                <TableCell sx={headCellStyles}>Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {filteredInventory.map((item) => (
+              {displayedRows.map((item) => (
                 <TableRow key={item.id}>
-                  <TableCell>{item.item_id}</TableCell>
-                  <TableCell>{item.item_name}</TableCell>
-                  <TableCell>{item.category}</TableCell>
-                  <TableCell>{item.qty.toFixed(2)}</TableCell>
-                  <TableCell>${item.unit_price.toFixed(2)}</TableCell>
-                  <TableCell>${item.total_value.toFixed(2)}</TableCell>
-                  <TableCell>{item.supplier}</TableCell>
-                  <TableCell>{new Date(item.purchase_date).toLocaleDateString()}</TableCell>
+                  <TableCell sx={cellStyles}>{item.item_id}</TableCell>
+                  <TableCell sx={cellStyles}>{item.item_name}</TableCell>
+                  <TableCell sx={cellStyles}>{item.category}</TableCell>
+                  <TableCell sx={cellStyles}>{item.qty}</TableCell>
+                  <TableCell sx={cellStyles}>${item.unit_price.toFixed(2)}</TableCell>
+                  <TableCell sx={cellStyles}>${item.total_value.toFixed(2)}</TableCell>
+                  <TableCell sx={cellStyles}>{item.supplier}</TableCell>
+                  <TableCell sx={cellStyles}>{new Date(item.purchase_date).toLocaleDateString()}</TableCell>
                   <TableCell>
-                    <IconButton color="error" onClick={() => removeItem(item.id)}>
-                      <DeleteIcon />
+                    <IconButton color="black" onClick={() => removeItem(item.id)}>
+                      <DeleteIcon sx={{ fontSize: '18px' }} />
                     </IconButton>
-                    <IconButton color="primary" onClick={() => handleOpen(item)}>
-                      <EditIcon />
+                    <IconButton color="black" onClick={() => handleOpen(item)}>
+                      <EditIcon sx={{ fontSize: '18px' }} />
                     </IconButton>
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
+          <TablePagination
+            rowsPerPageOptions={[5, 10, 15]}
+            component="div"
+            count={filteredInventory.length}
+            rowsPerPage={rowsPerPage}
+            page={page}
+            onPageChange={handleChangePage}
+            onRowsPerPageChange={handleChangeRowsPerPage}
+          />
         </TableContainer>
 
         <Modal open={open} onClose={handleClose}>
@@ -448,7 +587,19 @@ export default function Home() {
                 onChange={(e) => setPurchaseDate(e.target.value)}
                 InputLabelProps={{ shrink: true }}
               />
-              <Button variant="contained" onClick={editItem}>
+              <Button variant="contained" onClick={editItem} sx={{
+                  height:"35px",
+                  backgroundColor: 'black',
+                  borderRadius: '5px',
+                  padding: '10px 20px',
+                  fontFamily: "'Montserrat', sans-serif",
+                  fontSize: "10px",
+                  textTransform: 'uppercase',
+                  color: "white",
+                  '&:hover': {
+                    backgroundColor: '#212121', 
+                  }
+                }}>
                 Update Item
               </Button>
             </Stack>
